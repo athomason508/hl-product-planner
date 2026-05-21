@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Hal Leonard Booth Product Planning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{
+  --bg:#F4F1ED;--surface:#FFFFFF;--border:#DDD8D0;--border2:#C4BEB5;
+  --text:#19150F;--text2:#6A6358;--text3:#9E9589;
+  --accent:#C03A0B;--accent-hover:#A83208;
+  --yellow:#D4A017;--green:#2A7A4B;--green-bg:#EBF5EE;
+  --amber:#8A5C08;--amber-bg:#FEF6E5;
+  --red:#B02C2C;--red-bg:#FDEAEA;
+  --blue-bg:#EDF3FE;--blue:#2952A3;
+  --r:6px;--rlg:10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+/* Layout */
+.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+/* Sidebar */
+.sidebar{background:var(--text);color:#F4F1ED;padding:28px 22px;display:flex;flex-direction:column;gap:28px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.logo-mark{font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--yellow);opacity:.9;margin-bottom:4px}
+.logo-title{font-size:19px;font-weight:800;line-height:1.2;color:#F4F1ED}
+.logo-desc{font-size:11px;color:rgba(244,241,237,.45);margin-top:6px;line-height:1.55}
+.sb-sec{display:flex;flex-direction:column;gap:8px}
+.sb-label{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,237,.35);padding-bottom:6px;border-bottom:1px solid rgba(244,241,237,.1)}
+.sb-row{display:flex;justify-content:space-between;align-items:center}
+.sb-key{font-size:11px;color:rgba(244,241,237,.55)}
+.sb-val{font-family:'DM Mono',monospace;font-size:12px;color:#F4F1ED;font-weight:500}
+.cap-bar{display:flex;flex-direction:column;gap:3px;margin-bottom:4px}
+.cap-bar-top{display:flex;justify-content:space-between}
+.cap-bar-lbl{font-size:11px;color:rgba(244,241,237,.5)}
+.cap-bar-num{font-family:'DM Mono',monospace;font-size:11px;color:rgba(244,241,237,.65)}
+.bar-track{height:4px;background:rgba(244,241,237,.12);border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;transition:width .5s ease}
+.fill-ok{background:#4AB375}.fill-warn{background:var(--yellow)}.fill-over{background:#E05252}
+/* Main */
+.main{padding:36px 44px;max-width:940px}
+.main-hdr{margin-bottom:28px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.main-hdr h2{font-size:22px;font-weight:700}
+.main-hdr p{font-size:12px;color:var(--text2);margin-top:3px}
+/* API Banner */
+.api-banner{background:var(--amber-bg);border:1px solid #E5C078;border-radius:var(--rlg);padding:16px 18px;margin-bottom:22px;display:flex;align-items:flex-start;gap:12px}
+.api-banner-body p{font-size:13px;color:var(--amber);line-height:1.55}
+.api-banner-body a{color:var(--accent);text-decoration:underline}
+.api-key-row{display:flex;gap:8px;margin-top:10px}
+.api-key-row input{flex:1;font-family:'DM Mono',monospace;font-size:12px;padding:8px 12px;border:1px solid #E5C078;border-radius:var(--r);background:white;color:var(--text);outline:none}
+.api-key-row input:focus{border-color:var(--accent)}
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:22px;margin-bottom:14px}
+.card-title{font-size:10px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--text3);margin-bottom:14px}
+/* Fields */
+.field{margin-bottom:12px}
+.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--text2);margin-bottom:5px}
+.field input[type=text],.field input[type=number]{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:var(--r);font-family:'Syne',sans-serif;font-size:13px;color:var(--text);background:white;outline:none;transition:border-color .15s}
+.field input:focus{border-color:var(--accent)}
+.field .hint{font-size:11px;color:var(--text3);margin-top:3px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+/* Upload */
+.drop-zone{border:1.5px dashed var(--border2);border-radius:var(--rlg);padding:26px 18px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;margin-bottom:8px}
+.drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:#FDF4F0}
+.dz-icon{font-size:26px;margin-bottom:8px;display:block}
+.drop-zone p{font-size:13px;color:var(--text2)}
+.drop-zone .hint{font-size:11px;color:var(--text3);margin-top:3px}
+.file-row{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:9px 13px;margin-bottom:7px}
+.file-icon{font-size:17px}
+.file-info{flex:1;min-width:0}
+.file-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-sheets{font-size:11px;color:var(--text3);margin-top:1px}
+.file-rm{background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;padding:2px 5px;border-radius:3px;line-height:1}
+.file-rm:hover{color:var(--red);background:var(--red-bg)}
+/* Buttons */
+.btn{font-family:'Syne',sans-serif;font-size:13px;font-weight:600;padding:10px 20px;border-radius:var(--r);cursor:pointer;border:none;transition:opacity .15s,transform .1s;display:inline-flex;align-items:center;gap:6px;letter-spacing:.02em}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:white}
+.btn-primary:hover:not(:disabled){background:var(--accent-hover)}
+.btn-outline{background:white;color:var(--text);border:1px solid var(--border2)}
+.btn-outline:hover:not(:disabled){border-color:var(--text2)}
+.btn-green{background:var(--green);color:white}
+.btn-green:hover:not(:disabled){opacity:.88}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px}
+/* Progress */
+.progress-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:36px 28px;text-align:center;margin-bottom:14px}
+.spinner{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 18px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.prog-msg{font-size:14px;color:var(--text2)}
+.prog-steps{margin-top:18px;display:flex;flex-direction:column;gap:7px}
+.prog-step{font-size:12px;color:var(--text3);display:flex;align-items:center;gap:7px;justify-content:center}
+.prog-step.done{color:var(--green)}
+.prog-step.active{color:var(--text);font-weight:500}
+/* Results */
+.result-hdr{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+.result-title{font-size:20px;font-weight:700}
+.result-sub{font-size:12px;color:var(--text2);margin-top:3px}
+/* Verdicts */
+.verdict{border-radius:var(--r);padding:11px 15px;margin-bottom:9px;display:flex;gap:10px;align-items:flex-start}
+.verdict-ok{background:var(--green-bg);border:1px solid #A5D6BA}
+.verdict-warn{background:var(--amber-bg);border:1px solid #E5C078}
+.verdict-over{background:var(--red-bg);border:1px solid #E8A8A8}
+.v-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+.verdict-ok .v-icon{color:var(--green)}.verdict-warn .v-icon{color:var(--amber)}.verdict-over .v-icon{color:var(--red)}
+.v-title{font-size:13px;font-weight:600;margin-bottom:2px}
+.verdict-ok .v-title{color:var(--green)}.verdict-warn .v-title{color:var(--amber)}.verdict-over .v-title{color:var(--red)}
+.v-body{font-size:12px;color:var(--text2);line-height:1.6}
+/* Display tags */
+.disp-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.dtag{font-size:11px;padding:3px 9px;border-radius:20px;font-family:'DM Mono',monospace;background:var(--bg);border:1px solid var(--border2);color:var(--text2)}
+/* Error */
+.error-box{background:var(--red-bg);border:1px solid #E8A8A8;border-radius:var(--rlg);padding:16px 18px;font-size:13px;color:var(--red);line-height:1.55;margin-bottom:14px}
+/* Info box */
+.info-box{background:var(--blue-bg);border:1px solid #B8CCF0;border-radius:var(--r);padding:11px 15px;font-size:12px;color:var(--blue);line-height:1.6;margin-top:12px}
+@media(max-width:700px){.app{grid-template-columns:1fr}.sidebar{position:static;height:auto}.main{padding:22px 16px}.g3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div>
+    
+    <div class="logo-title">Hal Leonard<br/>Booth Product<br/>Planning</div>
+    <div class="logo-desc">Trade show display planning. Upload product orders, set booth capacity, export display-ready Excel files.</div>
+  </div>
+  <div class="sb-sec" id="sb-capacity" style="display:none">
+    <div class="sb-label">Booth Capacity</div>
+    <div id="sb-cap-bars"></div>
+  </div>
+  <div class="sb-sec" id="sb-stats" style="display:none">
+    <div class="sb-label">Display Count</div>
+    <div id="sb-stat-rows"></div>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-label">Display Types</div>
+    <div class="sb-row"><span class="sb-key">12-tier</span><span class="sb-val">33 slots</span></div>
+    <div class="sb-row"><span class="sb-key">16-pocket</span><span class="sb-val">30 slots</span></div>
+    <div class="sb-row"><span class="sb-key">64-pocket</span><span class="sb-val">64 slots</span></div>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-label">How to Use</div>
+    <div style="font-size:11px;color:rgba(244,241,237,.45);line-height:1.6">
+      1. Enter API key once<br/>
+      2. Fill show info<br/>
+      3. Set booth capacity<br/>
+      4. Upload order file(s)<br/>
+      5. Click Plan Displays<br/>
+      6. Export to Excel
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <!-- API Banner -->
+  <div class="api-banner" id="api-banner" style="display:none">
+    <div style="font-size:18px;flex-shrink:0;margin-top:1px">🔑</div>
+    <div class="api-banner-body">
+      <p>Enter your Anthropic API key to get started. Get one free at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>. Saved in this browser only — sent directly to Anthropic, never anywhere else.</p>
+      <div class="api-key-row">
+        <input type="password" id="api-key-input" placeholder="sk-ant-api03-..."/>
+        <button class="btn btn-primary" onclick="saveApiKey()">Save Key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORM -->
+  <div id="form-view">
+    <div class="main-hdr">
+      <div><h2>Hal Leonard Booth Product Planning</h2><p>Upload product orders and configure your booth to generate a complete display plan.</p></div>
+      <button class="btn btn-outline" onclick="clearApiKey()" style="font-size:11px;padding:7px 11px">Change API Key</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Show Info</div>
+      <div class="g2">
+        <div class="field"><label>Show Name</label><input type="text" id="showName" placeholder="e.g. JEN"/></div>
+        <div class="field"><label>Year</label><input type="text" id="showYear" placeholder="e.g. 2026"/></div>
+        
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Booth Capacity <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">— enter 0 for types not in your booth</span></div>
+      <div class="g2">
+        <div class="field"><label>12-Tier Displays</label><input type="number" id="cap12" min="0" max="50" value="0"/><p class="hint">11 rows × 3 cols · choral octavos</p></div>
+        <div class="field"><label>16-Pocket Displays</label><input type="number" id="cap16" min="0" max="50" value="0"/><p class="hint">15 rows × 2 cols · songbooks</p></div>
+        <div class="field"><label>64-Pocket / Rack n Roll</label><input type="number" id="cap64" min="0" max="50" value="0"/><p class="hint">32 rows × 2 cols · instrumental</p></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Product Orders</div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Upload one Excel file per order. Supports pre-planned grids, flat ALT lists, and 64-pocket Slot/Qty/Item formats.</p>
+      <div id="file-list"></div>
+      <div class="drop-zone" id="main-dz" onclick="document.getElementById('fpi').click()" ondragover="dzOv(event)" ondragleave="dzLv(event)" ondrop="dzDp(event)">
+        <span class="dz-icon">📂</span>
+        <p>Drop Excel files here or click to browse</p>
+        <p class="hint">.xlsx or .xls supported</p>
+      </div>
+      <input type="file" id="fpi" accept=".xlsx,.xls" style="display:none" onchange="handleFiles(this)" multiple/>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="planDisplays()">✦ Plan Displays</button>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div id="progress-view" style="display:none">
+    <div class="main-hdr"><div><h2 id="prog-title">Processing...</h2></div></div>
+    <div class="progress-wrap">
+      <div class="spinner"></div>
+      <div class="prog-msg" id="prog-msg">Starting...</div>
+      <div class="prog-steps" id="prog-steps"></div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result-view" style="display:none">
+    <div class="result-hdr">
+      <div>
+        <div class="result-title" id="res-title">Display Plan Ready</div>
+        <div class="result-sub" id="res-sub"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-green" id="export-btn" onclick="exportExcel()">↓ Export to Excel</button>
+        <button class="btn btn-outline" onclick="startOver()">↺ New Plan</button>
+      </div>
+    </div>
+    <div id="verdict-area"></div>
+    <div class="disp-tags" id="disp-tags"></div>
+    <div class="info-box" id="tbd-box" style="display:none">
+      ⚠ Items marked <strong>TBD</strong> could not be confirmed on halleonard.com. Verify these item numbers before entering into AS400.
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div id="error-view" style="display:none">
+    <div class="main-hdr"><div><h2>Something went wrong</h2></div></div>
+    <div class="error-box" id="error-msg"></div>
+    <button class="btn btn-outline" onclick="startOver()">← Try Again</button>
+  </div>
+</main>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let files=[], lastSections=null, lastMeta=null;
+
+// ── API Key ────────────────────────────────────────────────────────────────
+const K='hl_planner_api_key';
+const getKey=()=>localStorage.getItem(K)||'';
+function saveApiKey(){
+  const v=document.getElementById('api-key-input').value.trim();
+  if(!v.startsWith('sk-')){alert('Key should start with sk-');return;}
+  localStorage.setItem(K,v);
+  document.getElementById('api-banner').style.display='none';
+}
+function clearApiKey(){
+  localStorage.removeItem(K);
+  document.getElementById('api-key-input').value='';
+  document.getElementById('api-banner').style.display='flex';
+}
+function checkKey(){if(!getKey())document.getElementById('api-banner').style.display='flex';}
+
+// ── File handling ──────────────────────────────────────────────────────────
+function dzOv(e){e.preventDefault();document.getElementById('main-dz').classList.add('over');}
+function dzLv(e){document.getElementById('main-dz').classList.remove('over');}
+function dzDp(e){e.preventDefault();dzLv(e);Array.from(e.dataTransfer.files).forEach(f=>{if(/\.xlsx?$/i.test(f.name))readFile(f);});}
+function handleFiles(inp){Array.from(inp.files).forEach(f=>readFile(f));inp.value='';}
+function readFile(file){
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      files.push({fileName:file.name,sheets:wb.SheetNames.map(n=>({name:n,csv:XLSX.utils.sheet_to_csv(wb.Sheets[n],{blankrows:false})}))});
+      renderFiles();
+    }catch(err){alert('Could not parse '+file.name+': '+err.message);}
+  };
+  r.readAsArrayBuffer(file);
+}
+function removeFile(i){files.splice(i,1);renderFiles();}
+function renderFiles(){
+  document.getElementById('file-list').innerHTML=files.map((f,i)=>`
+    <div class="file-row">
+      <div class="file-icon">📊</div>
+      <div class="file-info">
+        <div class="file-name">${f.fileName}</div>
+        <div class="file-sheets">${f.sheets.map(s=>s.name).join(' · ')} · ${f.sheets.length} sheet${f.sheets.length!==1?'s':''}</div>
+      </div>
+      <button class="file-rm" onclick="removeFile(${i})">✕</button>
+    </div>`).join('');
+}
+
+// ── Views ──────────────────────────────────────────────────────────────────
+function show(id){['form-view','progress-view','result-view','error-view'].forEach(v=>document.getElementById(v).style.display=v===id?'block':'none');}
+function startOver(){show('form-view');document.getElementById('sb-capacity').style.display='none';document.getElementById('sb-stats').style.display='none';}
+
+function setProgress(msg,steps){
+  document.getElementById('prog-msg').textContent=msg;
+  document.getElementById('prog-steps').innerHTML=steps.map(s=>`<div class="prog-step ${s.s}">${s.s==='done'?'✓':s.s==='active'?'→':'·'} ${s.t}</div>`).join('');
+}
+
+// ── Claude API ─────────────────────────────────────────────────────────────
+async function claude(system,user,search=false){
+  const key=getKey();
+  if(!key)throw new Error('No API key set');
+  const body={model:'claude-sonnet-4-20250514',max_tokens:4096,system,messages:[{role:'user',content:user}]};
+  if(search)body.tools=[{type:'web_search_20250305',name:'web_search'}];
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify(body)
+  });
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||'API error '+res.status);}
+  const d=await res.json();
+  return d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+}
+
+function parseJ(t){
+  const c=t.replace(/```json|```/g,'').trim();
+  try{return JSON.parse(c);}catch(e){const m=c.match(/[\[{][\s\S]*[\]}]/);if(m)return JSON.parse(m[0]);throw new Error('Could not parse JSON');}
+}
+
+// ── Plan Displays ──────────────────────────────────────────────────────────
+async function planDisplays(){
+  if(!getKey()){document.getElementById('api-banner').style.display='flex';return;}
+  if(!files.length){alert('Please upload at least one product order file.');return;}
+
+  const sn=document.getElementById('showName').value||'Show';
+  const sy=document.getElementById('showYear').value||'';
+  
+  const c12=parseInt(document.getElementById('cap12').value)||0;
+  const c16=parseInt(document.getElementById('cap16').value)||0;
+  const c64=parseInt(document.getElementById('cap64').value)||0;
+
+  lastMeta={sn,sy,c12,c16,c64};
+  document.getElementById('prog-title').textContent=`${sn}${sy?' '+sy:''}`;
+  show('progress-view');
+
+  const steps=[
+    {t:'Parse product orders',s:'active'},
+    {t:'Look up HL item numbers',s:''},
+    {t:'Organize display sections',s:''},
+    {t:'Calculate booth capacity',s:''},
+  ];
+
+  try{
+    // Step 1: Parse
+    setProgress('Parsing product orders...',steps);
+    const allSheets=files.flatMap(f=>f.sheets.map(s=>`=== File: ${f.fileName} | Sheet: ${s.name} ===\n${s.csv}`)).join('\n\n');
+
+    const parseSys=`You are a trade show display planner for Hal Leonard, a music publisher.
+
+DISPLAY RULES:
+- 16-pocket: 2 cols x 15 rows = 30 slots. Default qty=1. Songbooks, method books, folios.
+- 12-tier: 3 cols x 11 rows = 33 slots. Default qty=3 (three DIFFERENT titles fill one row). Choral octavos.
+- 64-pocket: 2 cols x 32 rows = 64 slots. Fill top-to-bottom col1 then col2. Instrumental/fake books.
+- Fill left to right then next row. Never repeat same title in adjacent slots unless qty>1.
+
+SHEET FORMAT DETECTION:
+- Pre-planned grid: display name headers row1, col numbers row3, alternating product/HL rows. Keep confirmed products, fill empty slots from ALT sheet partner.
+- ALT/flat list: column headers with HL# pairs in row1. "ALT" in sheet name. Pairs with pre-planned sheet sharing 2+ keywords.
+- 64-pocket flat: Slot/Qty/Item/Description columns.
+
+SECTION NAMING: Group displays into editorial/publisher sections:
+- choral/vocal → "Choral & Vocal"
+- jazz ens/berklee/jazz band → "Jazz Ensemble & Resources"  
+- omnibook/real book/fake book → "Omnibooks & Real Books"
+- piano/classical → "Classical Piano"
+- instrumental/band → "Instrumental"
+- drums/percussion → "Drums & Percussion"
+- educational → "Educational"
+
+HEADER COPY: For each display suggest headline (3-6 words title case) and subheadline (one short sentence).
+
+OUTPUT: ONLY valid JSON, no markdown:
+[{"section_name":"...","displays":[{"name":"...","type":"12-tier|16-pocket|64-pocket","header_copy":{"headline":"...","subheadline":"..."},"products":[{"product_name":"...","hl_num":"...or TBD","qty":1}]}]}]`;
+
+    const pt=await claude(parseSys,`Show: ${sn}\n\nProduct orders:\n${allSheets}`);
+    const sections=parseJ(pt);
+
+    // Step 2: HL# lookup
+    steps[0].s='done';steps[1].s='active';
+    const tbds=[];
+    sections.forEach((sec,si)=>sec.displays.forEach((d,di)=>d.products.forEach((p,pi)=>{if(!p.hl_num||p.hl_num==='TBD')tbds.push({si,di,pi,name:p.product_name});})));
+
+    if(tbds.length>0){
+      const B=8;
+      for(let i=0;i<tbds.length;i+=B){
+        const batch=tbds.slice(i,i+B);
+        setProgress(`Looking up HL numbers (${Math.min(i+B,tbds.length)} of ${tbds.length})...`,steps);
+        try{
+          const lr=await fetch('https://api.anthropic.com/v1/messages',{
+            method:'POST',
+            headers:{'Content-Type':'application/json','x-api-key':getKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+            body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
+              system:'Search halleonard.com for each product and return the HL item number from the URL (/product/XXXXXXX/) or page text. Return ONLY JSON array: [{"product_name":"...","hl_num":"1234567 or TBD"}]',
+              tools:[{type:'web_search_20250305',name:'web_search'}],
+              messages:[{role:'user',content:`Find HL item numbers:\n${batch.map((p,i)=>`${i+1}. ${p.name}`).join('\n')}`}]})
+          });
+          if(lr.ok){
+            const ld=await lr.json();
+            const lt=ld.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+            try{parseJ(lt).forEach((r,ri)=>{if(ri<batch.length){const {si,di,pi}=batch[ri];sections[si].displays[di].products[pi].hl_num=r.hl_num||'TBD';}});}catch(e){}
+          }
+        }catch(e){}
+      }
+    }
+
+    // Step 3-4: organize & capacity
+    steps[1].s='done';steps[2].s='active';
+    setProgress('Organizing display sections...',steps);
+    await new Promise(r=>setTimeout(r,400));
+    steps[2].s='done';steps[3].s='active';
+    setProgress('Calculating booth capacity...',steps);
+    await new Promise(r=>setTimeout(r,300));
+    steps[3].s='done';
+
+    lastSections=sections;
+    renderResults(sections,lastMeta);
+
+  }catch(err){
+    show('error-view');
+    document.getElementById('error-msg').innerHTML=`<strong>Error:</strong> ${err.message}<br/><br/>Check your API key and internet connection, then try again.`;
+    console.error(err);
+  }
+}
+
+// ── Render Results ─────────────────────────────────────────────────────────
+function renderResults(sections,meta){
+  const {sn,sy,c12,c16,c64}=meta;
+  const allDisps=sections.flatMap(s=>s.displays);
+  const u12=allDisps.filter(d=>d.type==='12-tier'&&!d.name.includes('overflow')).length;
+  const u16=allDisps.filter(d=>d.type==='16-pocket'&&!d.name.includes('overflow')).length;
+  const u64=allDisps.filter(d=>d.type==='64-pocket'&&!d.name.includes('overflow')).length;
+  const ov12=allDisps.filter(d=>d.type==='12-tier'&&d.name.includes('overflow'));
+  const ov16=allDisps.filter(d=>d.type==='16-pocket'&&d.name.includes('overflow'));
+  const ov64=allDisps.filter(d=>d.type==='64-pocket'&&d.name.includes('overflow'));
+
+  document.getElementById('res-title').textContent=`${sn}${sy?' '+sy:''} — Display Plan`;
+  document.getElementById('res-sub').textContent=`${sections.length} section${sections.length!==1?'s':''} · ${allDisps.length} displays`;
+
+  // Sidebar capacity bars
+  const bars=[c12>0?capBar('12-Tier',u12,c12):'',c16>0?capBar('16-Pocket',u16,c16):'',c64>0?capBar('64-Pocket',u64,c64):''].filter(Boolean).join('');
+  document.getElementById('sb-cap-bars').innerHTML=bars||'<div style="font-size:11px;color:rgba(244,241,237,.35)">No capacity set</div>';
+  document.getElementById('sb-capacity').style.display='flex';
+  const stats=[u12>0?`<div class="sb-row"><span class="sb-key">12-tier</span><span class="sb-val">${u12}${c12>0?' / '+c12:''}</span></div>`:'',u16>0?`<div class="sb-row"><span class="sb-key">16-pocket</span><span class="sb-val">${u16}${c16>0?' / '+c16:''}</span></div>`:'',u64>0?`<div class="sb-row"><span class="sb-key">64-pocket</span><span class="sb-val">${u64}${c64>0?' / '+c64:''}</span></div>`:''].filter(Boolean).join('');
+  document.getElementById('sb-stat-rows').innerHTML=stats;
+  document.getElementById('sb-stats').style.display='flex';
+
+  // Verdicts
+  const vds=[];
+  function mkV(cap,used,ovs,lbl,tip){
+    if(!cap)return;
+    const op=ovs.reduce((a,d)=>a+d.products.filter(p=>p.product_name).length,0);
+    const pct=Math.round(used/cap*100);
+    if(used<=cap&&!ovs.length){
+      if(pct<=75)vds.push({t:'warn',i:'⚠',title:`${lbl}: ${used} of ${cap} used (${pct}%)`,body:`${cap-used} empty ${lbl.toLowerCase()}. ${tip}`});
+      else vds.push({t:'ok',i:'✓',title:`${lbl}: ${used} of ${cap} — fits comfortably`,body:`All confirmed titles fit within your planned ${lbl.toLowerCase()}.`});
+    }else{
+      vds.push({t:'over',i:'✕',title:`${lbl}: ${used} needed, ${cap} available`,body:`${op} titles in overflow won't fit. Options: (1) remove lower-priority overflow titles, (2) add ${used-cap} more ${lbl.toLowerCase()}, or (3) consolidate before exporting.`});
+    }
+  }
+  mkV(c12,u12,ov12,'12-tier displays','Consider adding more choral octavo titles.');
+  mkV(c16,u16,ov16,'16-pocket displays','Consider adding more method books or resource titles.');
+  mkV(c64,u64,ov64,'64-pocket displays','Consider adding more instrumental or fake book titles.');
+
+  document.getElementById('verdict-area').innerHTML=vds.map(v=>`<div class="verdict verdict-${v.t}"><div class="v-icon">${v.i}</div><div><div class="v-title">${v.title}</div><div class="v-body">${v.body}</div></div></div>`).join('');
+  document.getElementById('disp-tags').innerHTML=allDisps.map(d=>`<span class="dtag">${d.name} · ${d.products.filter(p=>p.product_name).length}</span>`).join('');
+
+  const hasTBD=allDisps.some(d=>d.products.some(p=>p.hl_num==='TBD'));
+  document.getElementById('tbd-box').style.display=hasTBD?'block':'none';
+  show('result-view');
+}
+
+function capBar(lbl,used,cap){
+  const pct=Math.min(115,Math.round(used/cap*100));
+  const cls=pct>100?'fill-over':pct>=85?'fill-warn':'fill-ok';
+  return `<div class="cap-bar"><div class="cap-bar-top"><span class="cap-bar-lbl">${lbl}</span><span class="cap-bar-num">${used}/${cap}</span></div><div class="bar-track"><div class="bar-fill ${cls}" style="width:${Math.min(100,pct)}%"></div></div></div>`;
+}
+
+// ── Excel Export (SheetJS + JSZip CF injection) ────────────────────────────
+function colLetter(n){let s='';while(n>0){s=String.fromCharCode(((n-1)%26)+65)+s;n=Math.floor((n-1)/26);}return s;}
+function cellRef(r,c){return colLetter(c)+r;}
+
+const HDR_COLORS=['BDD7EE','FFEB9C','FCE4D6','E2EFDA','D9D9FF','FFD7E8','D6E4FF','E8D5FF'];
+
+function hexToARGB(h){return 'FF'+h.replace('#','');}
+
+// Build a worksheet for one section
+function buildWorksheet(displays){
+  const ws={};
+  let cfRules=[];
+  let curCol=1;
+  let maxRow=2;
+
+  displays.forEach((d,idx)=>{
+    const color=HDR_COLORS[idx%HDR_COLORS.length];
+    const nCols=d.type==='12-tier'?3:2;
+    const maxRows=d.type==='12-tier'?11:d.type==='64-pocket'?32:15;
+
+    const rnCol=curCol;
+    const firstP=curCol+1;
+    const lastP=curCol+nCols;
+    const spacer=curCol+nCols+1;
+    const keyedCol=curCol+nCols+2;
+
+    // Row 1: header
+    const hRef=cellRef(1,firstP);
+    ws[hRef]={v:d.name,t:'s',s:{
+      font:{bold:true,sz:9,color:{rgb:'FF1A150F'}},
+      fill:{patternType:'solid',fgColor:{rgb:hexToARGB(color)}},
+      alignment:{horizontal:'center',vertical:'center',wrapText:true},
+      border:{top:{style:'medium'},bottom:{style:'medium'},left:{style:'medium'},right:{style:'medium'}}
+    }};
+    // Merge header
+    if(!ws['!merges'])ws['!merges']=[];
+    ws['!merges'].push({s:{r:0,c:firstP-1},e:{r:0,c:lastP-1}});
+
+    // Row 2: col numbers
+    for(let pc=1;pc<=nCols;pc++){
+      const ref=cellRef(2,curCol+pc);
+      ws[ref]={v:pc,t:'n',s:{font:{bold:true,sz:8},fill:{patternType:'solid',fgColor:{rgb:'FFF2F2F2'}},alignment:{horizontal:'center',vertical:'center'},border:{top:{style:'thin',color:{rgb:'FFBBBBBB'}},bottom:{style:'thin',color:{rgb:'FFBBBBBB'}},left:{style:'thin',color:{rgb:'FFBBBBBB'}},right:{style:'thin',color:{rgb:'FFBBBBBB'}}}}};
+    }
+
+    // Keyed column header
+    ws[cellRef(1,keyedCol)]={v:'✓',t:'s',s:{font:{bold:true,sz:8},fill:{patternType:'solid',fgColor:{rgb:'FFF2F2F2'}},alignment:{horizontal:'center',vertical:'center'}}};
+    ws[cellRef(2,keyedCol)]={v:'',t:'s',s:{fill:{patternType:'solid',fgColor:{rgb:'FFF2F2F2'}}}};
+
+    // Tier rows
+    for(let tier=1;tier<=maxRows;tier++){
+      const pr=2+(tier-1)*2+1;
+      const hr=pr+1;
+      if(pr+1>maxRow)maxRow=hr;
+
+      // Row number
+      ws[cellRef(pr,rnCol)]={v:tier,t:'n',s:{font:{sz:8},fill:{patternType:'solid',fgColor:{rgb:'FFF2F2F2'}},alignment:{horizontal:'center',vertical:'center'},border:{top:{style:'thin',color:{rgb:'FFBBBBBB'}},bottom:{style:'thin',color:{rgb:'FFBBBBBB'}},left:{style:'thin',color:{rgb:'FFBBBBBB'}},right:{style:'thin',color:{rgb:'FFBBBBBB'}}}}};
+
+      for(let pc=1;pc<=nCols;pc++){
+        const slot=(d.products&&d.products[(tier-1)*nCols+(pc-1)])||{product_name:'',hl_num:'',qty:null};
+        const hl=slot.hl_num||'';
+        const qty=slot.qty;
+        const hlDisp=hl&&qty!=null?`${hl}  (${qty})`:hl;
+
+        // Product cell
+        ws[cellRef(pr,curCol+pc)]={v:slot.product_name||'',t:'s',s:{font:{sz:9},alignment:{horizontal:'left',vertical:'center',wrapText:true},border:{top:{style:'thin',color:{rgb:'FFBBBBBB'}},bottom:{style:'thin',color:{rgb:'FFBBBBBB'}},left:{style:'thin',color:{rgb:'FFBBBBBB'}},right:{style:'thin',color:{rgb:'FFBBBBBB'}}},fill:{patternType:'solid',fgColor:{rgb:'FFFFFFFF'}}}};
+
+        // HL cell
+        const hlFill=(!hl||hl==='TBD')?'FFFFF2CC':'FFFAFAFA';
+        ws[cellRef(hr,curCol+pc)]={v:hlDisp,t:'s',s:{font:{sz:8},alignment:{horizontal:'center',vertical:'center'},border:{top:{style:'thin',color:{rgb:'FFBBBBBB'}},bottom:{style:'thin',color:{rgb:'FFBBBBBB'}},left:{style:'thin',color:{rgb:'FFBBBBBB'}},right:{style:'thin',color:{rgb:'FFBBBBBB'}}},fill:{patternType:'solid',fgColor:{rgb:hlFill}}}};
+      }
+
+      // Keyed column cells (empty, light gray)
+      ws[cellRef(pr,keyedCol)]={v:'',t:'s',s:{fill:{patternType:'solid',fgColor:{rgb:'FFF9F9F9'}},border:{top:{style:'thin',color:{rgb:'FFBBBBBB'}},bottom:{style:'thin',color:{rgb:'FFBBBBBB'}},left:{style:'thin',color:{rgb:'FFBBBBBB'}},right:{style:'thin',color:{rgb:'FFBBBBBB'}}},alignment:{horizontal:'center',vertical:'center'}}};
+      ws[cellRef(hr,keyedCol)]={v:'',t:'s',s:{fill:{patternType:'solid',fgColor:{rgb:'FFF9F9F9'}},border:{top:{style:'thin',color:{rgb:'FFBBBBBB'}},bottom:{style:'thin',color:{rgb:'FFBBBBBB'}},left:{style:'thin',color:{rgb:'FFBBBBBB'}},right:{style:'thin',color:{rgb:'FFBBBBBB'}}},alignment:{horizontal:'center',vertical:'center'}}};
+
+      // CF rule for this tier: watch keyed col, green everything
+      const fc=colLetter(firstP);
+      const lc=colLetter(keyedCol);
+      const kl='$'+colLetter(keyedCol);
+      cfRules.push({sqref:`${fc}${pr}:${lc}${hr}`,formula:`LEN(TRIM(${kl}${pr}))>0`});
+    }
+
+    // Column widths
+    if(!ws['!cols'])ws['!cols']=[];
+    while(ws['!cols'].length<keyedCol)ws['!cols'].push({wch:8});
+    ws['!cols'][rnCol-1]={wch:3};
+    for(let pc=1;pc<=nCols;pc++)ws['!cols'][curCol+pc-1]={wch:26};
+    ws['!cols'][spacer-1]={wch:2};
+    ws['!cols'][keyedCol-1]={wch:3};
+
+    curCol+=nCols+3; // row_num + prods + spacer + keyed
+  });
+
+  ws['!ref']=`A1:${colLetter(curCol)}${maxRow}`;
+  ws['!freeze']={xSplit:0,ySplit:2,topLeftCell:'B3',activePane:'bottomRight',state:'frozen'};
+
+  // Store CF rules on the sheet object for later XML injection
+  ws['__cfRules']=cfRules;
+
+  // Row heights
+  if(!ws['!rows'])ws['!rows']=[];
+  ws['!rows'][0]={hpt:16.5};
+  ws['!rows'][1]={hpt:9.75};
+  for(let r=2;r<maxRow;r++){
+    if((r-2)%2===0)ws['!rows'][r]={hpt:22.5}; // product row
+    else ws['!rows'][r]={hpt:9.75};             // HL row
+  }
+
+  return ws;
+}
+
+async function exportExcel(){
+  if(!lastSections)return;
+  const btn=document.getElementById('export-btn');
+  btn.disabled=true;btn.textContent='⏳ Building Excel...';
+
+  try{
+    const {sn,sy}=lastMeta;
+    const safeName=(sn+'_'+(sy||'')+'_ProductOrder').replace(/[^A-Za-z0-9_]/g,'_').replace(/__+/g,'_');
+
+    // Build workbook using xlsx-js-style for cell styling
+    // Since standard SheetJS free doesn't support cell styles,
+    // we'll use the xlsx-js-style CDN
+    if(!window.XLSXStyle){
+      await new Promise((res,rej)=>{
+        const s=document.createElement('script');
+        s.src='https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
+        s.onload=res;s.onerror=rej;
+        document.head.appendChild(s);
+      });
+    }
+
+    const XLSXS=window.XLSXStyle||window.XLSX;
+    const wb=XLSXS.utils.book_new();
+
+    // Build CF rules XML for each sheet
+    const sheetCFRules={};
+
+    lastSections.forEach(sec=>{
+      const ws=buildWorksheet(sec.displays);
+      const cfRules=ws['__cfRules']||[];
+      delete ws['__cfRules'];
+      const tabName=sec.section_name.substring(0,31);
+      XLSXS.utils.book_append_sheet(wb,ws,tabName);
+      sheetCFRules[tabName]=cfRules;
+    });
+
+    // Write to ArrayBuffer
+    const xlsxBuf=XLSXS.write(wb,{bookType:'xlsx',type:'array'});
+
+    // Post-process with JSZip to inject CF XML
+    const zip=await JSZip.loadAsync(xlsxBuf);
+
+    // Find all worksheet files
+    const wsFiles=Object.keys(zip.files).filter(f=>f.match(/xl\/worksheets\/sheet\d+\.xml$/));
+
+    // Map sheet index to tab name
+    const sheetNames=wb.SheetNames;
+
+    for(let i=0;i<wsFiles.length;i++){
+      const wsFile=wsFiles[i];
+      const tabName=sheetNames[i];
+      const rules=sheetCFRules[tabName];
+      if(!rules||!rules.length)continue;
+
+      let xml=await zip.files[wsFile].async('string');
+
+      // Build CF XML to inject
+      const cfXml=rules.map(r=>`<conditionalFormatting sqref="${r.sqref}"><cfRule type="expression" priority="${rules.indexOf(r)+1}"><formula>${r.formula}</formula><dxfId>0</dxfId></cfRule></conditionalFormatting>`).join('');
+
+      // Inject a dxf (differential format) for green fill in the styles.xml
+      // First inject CF into worksheet XML - insert before </worksheet>
+      xml=xml.replace('</worksheet>',cfXml+'</worksheet>');
+      zip.file(wsFile,xml);
+    }
+
+    // Inject green dxf into styles.xml
+    const stylesXml=await zip.files['xl/styles.xml'].async('string');
+    let newStyles=stylesXml;
+    if(!stylesXml.includes('<dxfs')){
+      newStyles=stylesXml.replace('</styleSheet>',
+        '<dxfs count="1"><dxf><fill><patternFill><bgColor rgb="FFC6EFCE"/></patternFill></fill></dxf></dxfs></styleSheet>');
+    } else if(!stylesXml.includes('C6EFCE')){
+      newStyles=stylesXml.replace(/<dxfs count="(\d+)">/,(m,n)=>`<dxfs count="${parseInt(n)+1}">`)
+                         .replace('<dxfs','<dxfs')
+                         .replace(/(<dxfs[^>]*>)/,'$1<dxf><fill><patternFill><bgColor rgb="FFC6EFCE"/></patternFill></fill></dxf>');
+    }
+    zip.file('xl/styles.xml',newStyles);
+
+    // Generate final zip and trigger download
+    const finalBuf=await zip.generateAsync({type:'arraybuffer',compression:'DEFLATE'});
+    const blob=new Blob([finalBuf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=safeName+'.xlsx';a.click();
+    URL.revokeObjectURL(url);
+
+    btn.disabled=false;btn.textContent='↓ Export to Excel';
+  }catch(err){
+    btn.disabled=false;btn.textContent='↓ Export to Excel';
+    alert('Export error: '+err.message+'\n\nTip: If this keeps failing, try with fewer displays.');
+    console.error(err);
+  }
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+checkKey();
+</script>
+</body>
+</html>
